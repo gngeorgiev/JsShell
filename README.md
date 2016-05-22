@@ -48,3 +48,19 @@ module.exports = function (shell) {
 # Installation 
 
 *To be done*
+
+# Local development
+
+* Clone the repo
+* Run the shell with `node index.js`
+* For debugging run with `node --debug=5858 index.js` and attach a remote node debugger
+* There are no tests just yet, but stay tuned for those
+
+# Contributing
+
+* Fork the repo
+* Clone it
+* Commit your changes
+* Submit PR
+
+Make sure to keep the code style the same.
