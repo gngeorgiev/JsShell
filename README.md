@@ -41,6 +41,7 @@ module.exports = function (shell) {
 - [ ] Autocomplete from bash completion files
 - [ ] Execute JavaScript inside the shell
 - [X] Multiple commands - `&&`
+- [ ] Multiline - `\`
 - [ ] Pipes - `|`
 - [ ] Background processes - `&`
 - [ ] More?
