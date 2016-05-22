@@ -40,6 +40,7 @@ module.exports = function (shell) {
 - [X] Autocomplete based on files
 - [ ] Autocomplete from bash completion files
 - [ ] Execute JavaScript inside the shell
+- [X] Multiple commands - `&&`
 - [ ] Pipes - `|`
 - [ ] Background processes - `&`
 - [ ] More?
