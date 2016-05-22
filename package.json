@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "colors": "^1.1.2"
+    "colors": "^1.1.2",
+    "cross-spawn": "^3.0.1",
+    "lodash": "^4.12.0"
   }
 }

@@ -1,13 +1,15 @@
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
+const spawn = require('cross-spawn');
+const { execSync } = require('child_process');
 const constants = require('./constants');
+const { expandPath } = require('./shellUtils');
 
 class Executor {
     constructor(shell) {
         this.shell = shell;
 
-        this.path = this.shell.settings.path;
+        this.path = this.shell.settings.env.PATH;
         this.paths = this.path.split(':');
     }
 
@@ -24,43 +26,35 @@ class Executor {
         return null;
     }
 
-    _executeSystemCommand(systemCmd, args, callback) {
-        const childProc = execFile(systemCmd, args, {
-            cwd: __dirname //TODO:
-        });
+    executeCommandSync(cmd) {
+        const res = execSync(cmd);
+        return res.toString('utf8');
+    }
 
-        childProc.on('close', () => {
-            callback();
-        });
+    executeSystemCommand(systemCmd, args) {
+        return new Promise((resolve, reject) => {
+            const childProc = spawn(systemCmd, args, {
+                env: process.env,
+                stdio: 'inherit'
+            });
 
-        childProc.stdout.on('data', data => {
-            console.log(data);
-        });
-
-        childProc.stderr.on('data', data => {
-            console.log(data);
+            childProc.on('close', resolve);
+            childProc.on('error', reject);
         });
     }
 
-    _executeJshellCommand(cmd) {
+    executeJshellCommand(cmd) {
         return eval(cmd);
     }
 
-    _executeCdCommand(args) {
+    executeCdCommand(args) {
         let cdPath = args.length ? args[0] : '..';
-        cdPath = cdPath.replace(new RegExp('\$[a-zA-Z]+|\~', 'g'), (match) => {
-            if (match === '~') {
-                match = 'HOME';
-            }
-
-            return process.env[match] || match;
-        });
 
         let newCwd = '';
         if (cdPath.charAt(0) === '/') {
             newCwd = path.normalize(cdPath);
         } else {
-            newCwd = path.join(this.shell.actualCwd, cdPath);
+            newCwd = path.join(this.shell.absoluteCwd, cdPath);
         }
 
         if (fs.existsSync(newCwd)) {
@@ -71,27 +65,20 @@ class Executor {
     }
 
     execute(parsedLine) {
-        return new Promise(resolve => {
-            const allCommandsResolvedPromises = parsedLine.commands.map(cmd => {
-                if (cmd.cmd === constants.Command.Cd) {
-                    return this._executeCdCommand(cmd.args);
-                }
-                
-                return new Promise(resolveCmd => {
-                    const systemCmd = this._findSystemPath(cmd.cmd);
-                    if (systemCmd) {
-                        return this._executeSystemCommand(systemCmd, cmd.args, () => {
-                            resolveCmd();
-                        });
-                    }
+        const allCommandsResolvedPromises = parsedLine.commands.map(cmd => {
+            if (cmd.cmd === constants.Command.Cd) {
+                return this.executeCdCommand(cmd.argsClean);
+            }
 
-                    const shellResult = this._executeJshellCommand();
-                    return resolveCmd(shellResult)
-                });
-            });
-
-            Promise.all(allCommandsResolvedPromises).then(resolve);
+            const systemCmd = this._findSystemPath(cmd.cmd);
+            if (systemCmd) {
+                return this.executeSystemCommand(systemCmd, cmd.argsClean);
+            } else {
+                return this.executeJshellCommand();
+            }
         });
+
+        return Promise.all(allCommandsResolvedPromises);
     }
 }
 

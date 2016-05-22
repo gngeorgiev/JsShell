@@ -1,10 +1,9 @@
 require('colors');
 
-const Shell = require('./src/Shell');
+const shell = require('./src/Shell');
 const Parser = require('./src/Parser');
 const Executor = require('./src/Executor');
 
-const shell = new Shell();
 const parser = new Parser(shell);
 const executor = new Executor(shell);
 
@@ -33,5 +32,5 @@ shell.onLine((line, callback) => {
 
 let params = process.argv.slice(2);
 if (params.length) {
-    shell.pushLine(params.join(' '));
+    shell.writeLn(params.join(' '));
 }

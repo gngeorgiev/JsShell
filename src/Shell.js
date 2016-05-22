@@ -1,48 +1,40 @@
 const readline = require('readline');
 const Settings = require('./Settings');
-
-readline.emitKeypressEvents(process.stdin);
-if (process.stdin.isTTY) {
-    process.stdin.setRawMode(true);
-}
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    terminal: true
-});
+const Completer = require('./Completer');
+const Executor = require('./Executor');
+const path = require('path');
 
 class Shell {
     constructor() {
-        this.settings = new Settings(this);
-        this.settings.readConfig();
+        this.settings = Settings(this);
 
-        this.cwd = process.cwd();
-        this.home = process.env.HOME;
+        this.home = this.settings.env.HOME;
+        this.cwd = this.home;
+        this.completer = new Completer(this);
+        this.executor = new Executor(this);
 
-        this._lineCallbacks = [];
-        this._keypressCallbacks = [];
-
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            terminal: true,
+            completer: this.completer.complete.bind(this.completer)
+        });
         this.rl = rl;
         this.rl.setPrompt(this.settings.prompt);
         this.rl.prompt();
 
-        process.stdin.on('keypress', (_, data) => {
-            this.pushKeyPress(data);
-        });
+        readline.emitKeypressEvents(process.stdin, rl);
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
 
-        process.stdin.on('data', (data) => {
-            //TODO: handle tabs etc
-        });
+        this._lineCallbacks = [];
+        this._keypressCallbacks = [];
 
-        rl.on('line', line => {
-            this.pushLine(line);
-        }).on('close', () => {
-            process.exit(0);
-        });
+        this._attachHandlers();
     }
 
-    get actualCwd() {
+    get absoluteCwd() {
         return this._cwd;
     }
 
@@ -51,8 +43,29 @@ class Shell {
         return cwd.replace(this.home, '~');
     }
 
+    get env() {
+        return this.settings.env || process.env;
+    }
+
     set cwd(val) {
-        this._cwd = val;
+        this._cwd = path.normalize(val);
+        process.chdir(this._cwd);
+    }
+
+    _attachHandlers() {
+        process.stdin.on('keypress', (_, data) => {
+            this._keyPress(data);
+        });
+
+        this.rl.on('line', line => {
+            this.writeLn(line);
+        }).on('close', () => {
+            process.exit(0);
+        });
+    }
+
+    _keyPress(data) {
+        this._keypressCallbacks.forEach(cb => cb(data));
     }
 
     onLine(cb) {
@@ -63,7 +76,11 @@ class Shell {
         this._keypressCallbacks.push(cb);
     }
 
-    pushLine(line) {
+    exec(cmd) {
+        return this.executor.executeCommandSync(cmd);
+    }
+
+    writeLn(line) {
         const allLineListenersPromises = this._lineCallbacks.map(cb => {
             return new Promise(resolve => {
                 cb(line, resolve);
@@ -77,18 +94,14 @@ class Shell {
             });
     }
 
-    pushKeyPress(data) {
-        this._keypressCallbacks.forEach(cb => cb(data));
-    }
-
-    write(str, opts) {
+    print(str, opts) {
         opts = opts || {};
         this.rl.write(str, opts);
     }
 
-    writeLn(str, opts) {
+    printLn(str, opts) {
         this.write(str + '\r\n', opts);
     }
 }
 
-module.exports = Shell;
+module.exports = new Shell();

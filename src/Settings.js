@@ -1,6 +1,6 @@
 const defaultSettings = {
     prompt: `$>`,
-    path: process.env.PATH
+    env: process.env
 };
 
 const configPath = '../demo/config.js';
@@ -11,27 +11,31 @@ class Settings {
         this.config = {};
     }
 
-    readConfig() {
-        const configFunc = require(configPath);
-        const userConfig = configFunc(this.shell);
-        this.config = Object.assign(this.config, defaultSettings, userConfig);
-    }
-
     _callOrGet(field) {
-        if (typeof field === 'function') {
-            return field();
+        const prop = this.config[field];
+
+        if (typeof prop === 'function') {
+            return prop();
         }
 
-        return field;
-    }
-
-    get prompt() {
-        return this._callOrGet(this.config.prompt);
-    }
-
-    get path() {
-        return this._callOrGet(this.config.path);
+        return prop;
     }
 }
 
-module.exports = Settings;
+module.exports = function (shell) {
+    const settings = new Settings(shell);
+
+    const configFunc = require(configPath);
+    const userConfig = configFunc(shell);
+    settings.config = Object.assign({}, defaultSettings, userConfig);
+
+    return new Proxy(settings, {
+        get(settings, prop) {
+            if (settings.config[prop]) {
+                return settings._callOrGet(prop);
+            }
+
+            return null;
+        }
+    });
+};
