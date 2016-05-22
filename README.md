@@ -52,6 +52,8 @@ module.exports = function (shell) {
 
 # Local development
 
+*node v6 is required*
+
 * Clone the repo
 * Run the shell with `node index.js`
 * For debugging run with `node --debug=5858 index.js` and attach a remote node debugger
