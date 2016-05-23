@@ -63,7 +63,7 @@ class Executor {
 
             childProc.on('exit', code => {
                 if (cmd.operation === constants.CommandOperation.Background) {
-                    this.shell.writeLn(`[${childProc.pid}] - exited with code - ${code}`);
+                    this.shell.printLn(`[${childProc.pid}] exited with code - ${code}`);
                 }
 
                 cmd.exitCode = code;

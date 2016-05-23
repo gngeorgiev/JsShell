@@ -31,10 +31,12 @@ class Parser {
         let lastMatchedIndex = 0;
         splitLine.forEach((char, index) => {
             if (tokenSplitters.includes(char) || index === line.length - 1) {
-                const indexMatch = index === line.length - 1 ? index + 1 : index;
+                const isOpChar = commandOperations.includes(char);
+
+                const indexMatch = index === line.length - 1 && !isOpChar ? index + 1 : index;
                 const token = splitLine.slice(lastMatchedIndex, indexMatch);
                 tokens.push(token.join(''));
-                if (commandOperations.includes(char)) {
+                if (isOpChar) {
                     tokens.push(char);
                 }
 

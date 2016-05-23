@@ -107,7 +107,7 @@ class Shell {
     }
 
     printLn(str, opts) {
-        this.write(str + '\r\n', opts);
+        this.print(`\r\n${str}\r\n`, opts);
     }
 }
 
