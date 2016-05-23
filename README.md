@@ -30,6 +30,12 @@ module.exports = function (shell) {
 };
 ```
 
+# Supported platforms
+
+- [X] Linux
+- [ ] Windows
+- [ ] Mac OS
+
 # Features completion
 
 - [X] Execute unix commands
