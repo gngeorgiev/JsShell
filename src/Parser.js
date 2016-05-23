@@ -35,7 +35,10 @@ class Parser {
 
                 const indexMatch = index === line.length - 1 && !isOpChar ? index + 1 : index;
                 const token = splitLine.slice(lastMatchedIndex, indexMatch);
-                tokens.push(token.join(''));
+                if (token.length) {
+                    tokens.push(token.join(''));
+                }
+
                 if (isOpChar) {
                     tokens.push(char);
                 }
