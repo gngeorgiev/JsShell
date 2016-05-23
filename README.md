@@ -7,6 +7,12 @@ The configs and scripts are also pure JavaScript, which allows you to extend you
 
 [![asciicast](https://asciinema.org/a/85cb90nucuaof2k3is4zeoezm.png)](https://asciinema.org/a/85cb90nucuaof2k3is4zeoezm)
 
+# Installation
+
+Run `npm install -g jshell-node`.
+
+In your terminal of choice change the executed command to `jshell`.
+
 # Example configuration file
 
 ```javascript
@@ -51,10 +57,6 @@ module.exports = function (shell) {
 - [X] Pipes - `|`
 - [X] Background processes - `&`
 - [ ] More?
-
-# Installation 
-
-*To be done*
 
 # Local development
 
