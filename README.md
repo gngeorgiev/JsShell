@@ -1,7 +1,7 @@
 # JShell - WIP
 
 JShell is a JavaScript based unix shell that allows you to execute unix commands and JavaScript code directly in your terminal.
-The configs and scripts are also pure JavaScript, bye bye long and ugly `.bashrc`.
+The configs and scripts are also pure JavaScript, which allows you to extend your shell with npm modules directly.
 
 # Demo
 
