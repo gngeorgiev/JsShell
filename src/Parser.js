@@ -1,6 +1,12 @@
 const { expandPath } = require('./shellUtils');
-const { CommandOperation } = require('./constants');
+const constants = require('./constants');
 const _ = require('lodash');
+
+const commandOperations = _
+    .chain(constants.CommandOperation)
+    .values()
+    .without(constants.CommandOperation.None)
+    .value();
 
 class Parser {
     constructor(shell) {
@@ -10,16 +16,37 @@ class Parser {
     _buildCommand(tokens, operation) {
         return {
             cmd: tokens[0],
-            args: tokens.slice(1).map(arg => arg.trim()).map(arg => expandPath(arg, this.shell)), //TODO: is this needed?
-            operation: operation || CommandOperation.None,
+            args: tokens.slice(1).map(arg => arg.trim()).map(arg => expandPath(arg, this.shell)), //TODO: is this trimming needed?
+            operation: operation || constants.CommandOperation.None,
             result: null,
             exitCode: null
         }
     }
 
+    _tokenizeLine(line) {
+        const tokens = [];
+        const tokenSplitters = commandOperations.slice().concat(' ');
+        const splitLine = line.split('');
+
+        let lastMatchedIndex = 0;
+        splitLine.forEach((char, index) => {
+            if (tokenSplitters.includes(char) || index === line.length - 1) {
+                const indexMatch = index === line.length - 1 ? index + 1 : index;
+                const token = splitLine.slice(lastMatchedIndex, indexMatch);
+                tokens.push(token.join(''));
+                if (commandOperations.includes(char)) {
+                    tokens.push(char);
+                }
+
+                lastMatchedIndex = index + 1;
+            }
+        });
+
+        return tokens;
+    }
+
    _parseCommandsFromLine(line) {
-       const commandOperations = _.chain(CommandOperation).values().without(CommandOperation.None).value();
-       const tokens = line.split(' ');
+       const tokens = this._tokenizeLine(line);
        const commands = [];
 
        let tokenIndex = 0;
