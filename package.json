@@ -1,11 +1,15 @@
 {
-  "name": "jshell",
-  "version": "1.0.0",
+  "name": "jshell-node",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
+  "bin": {
+      "jshell": "bin/jshell.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "preferGlobal": true,
   "author": "",
   "license": "ISC",
   "dependencies": {
