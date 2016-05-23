@@ -48,8 +48,8 @@ module.exports = function (shell) {
 - [ ] Execute JavaScript inside the shell
 - [X] Multiple commands - `&&`
 - [ ] Multiline - `\`
-- [ ] Pipes - `|`
-- [ ] Background processes - `&`
+- [X] Pipes - `|`
+- [X] Background processes - `&`
 - [ ] More?
 
 # Installation 

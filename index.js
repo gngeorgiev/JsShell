@@ -14,15 +14,7 @@ shell.onLine((line, callback) => {
 
     const parsedLine = parser.parse(line);
     executor.execute(parsedLine)
-        .then(data => {
-            if (data !== null && data !== undefined) {
-                if (Array.isArray(data)) {
-                    data.filter(data => !!data).forEach(data => console.log(data));
-                } else {
-                    console.log(data);
-                }
-            }
-
+        .then(() => {
             callback();
         })
         .catch(error => {

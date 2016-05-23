@@ -3,7 +3,7 @@ const path = require('path');
 const spawn = require('cross-spawn');
 const { execSync } = require('child_process');
 const constants = require('./constants');
-const { expandPath } = require('./shellUtils');
+const stream = require('stream');
 
 class Executor {
     constructor(shell) {
@@ -31,54 +31,145 @@ class Executor {
         return res.toString('utf8');
     }
 
-    executeSystemCommand(systemCmd, args) {
+    executeSystemCommand(systemCmd, cmd) {
         return new Promise((resolve, reject) => {
-            const childProc = spawn(systemCmd, args, {
-                env: process.env,
-                stdio: 'inherit'
-            });
+            const previousCmdIsPipe = cmd.previous() && cmd.previous().operation === constants.CommandOperation.Pipe;
+            const stdioStdin = previousCmdIsPipe ? 'pipe' : 'inherit';
 
-            childProc.on('close', resolve);
-            childProc.on('error', reject);
+            const cmdIsPipe = cmd.operation === constants.CommandOperation.Pipe;
+            const stdioStdout = cmdIsPipe ? 'pipe' : 'inherit';
+
+            const childProcOptions = {
+                env: this.shell.settings.env,
+                stdio: [stdioStdin, stdioStdout, 'inherit']
+            };
+
+            const childProc = spawn(systemCmd, cmd.args, childProcOptions);
+
+            const stdoutStream = new stream.Writable();
+            stdoutStream._write = data => {
+                cmd.value = data.toString();
+            };
+
+            if (cmdIsPipe) {
+                childProc.stdout.pipe(stdoutStream);
+            }
+
+            if (previousCmdIsPipe) {
+                childProc.stdin.setEncoding('utf-8');
+                childProc.stdin.write(cmd.previous().value);
+                childProc.stdin.end();
+            }
+
+            childProc.on('exit', code => {
+                if (cmd.operation === constants.CommandOperation.Background) {
+                    this.shell.writeLn(`[${childProc.pid}] - exited with code - ${code}`);
+                }
+
+                cmd.exitCode = code;
+            });
+            childProc.on('close', () => {
+                resolve();
+            });
+            childProc.on('error', err => {
+                reject(err);
+            });
         });
     }
 
     executeJshellCommand(cmd) {
-        return eval(cmd);
+        return new Promise(resolve => {
+            return resolve(eval(cmd));
+        });
     }
 
     executeCdCommand(args) {
-        let cdPath = args.length ? args[0] : '..';
+        return new Promise(resolve => {
+            let cdPath = args.length ? args[0] : '..';
 
-        let newCwd = '';
-        if (cdPath.charAt(0) === '/') {
-            newCwd = path.normalize(cdPath);
-        } else {
-            newCwd = path.join(this.shell.absoluteCwd, cdPath);
+            let newCwd = '';
+            if (cdPath.charAt(0) === '/') {
+                newCwd = path.normalize(cdPath);
+            } else {
+                newCwd = path.join(this.shell.absoluteCwd, cdPath);
+            }
+
+            fs.exists(newCwd, exists => {
+                if (exists) {
+                    this.shell.cwd = newCwd;
+                    return resolve();
+                }
+
+                return resolve(`No such directory ${cdPath}`)
+            });
+        });
+    }
+
+    wrapExecuteCommand(cmd) {
+        return new Promise((resolve, reject) => {
+            let commandExecutePromise;
+
+            if (cmd.cmd === constants.Command.Cd) {
+                commandExecutePromise = this.executeCdCommand(cmd.args);
+            } else {
+                const systemCmd = this._findSystemPath(cmd.cmd);
+                if (systemCmd) {
+                    commandExecutePromise = this.executeSystemCommand(systemCmd, cmd);
+                } else {
+                    commandExecutePromise = this.executeJshellCommand();
+                }
+            }
+
+            if (cmd.operation === constants.CommandOperation.And
+                && cmd.previous() && cmd.previous().exitCode !== 0) {
+                //if the cmd is executed with and we must ensure that the previous command exited with 0
+                return reject();
+            } else if (cmd.operation === constants.CommandOperation.Background) {
+                //if the cmd is a background one we do not care what happens to it
+                return resolve();
+            }
+
+            //otherwise we will continue running commands serially
+            commandExecutePromise.then(() => {
+                resolve();
+            }, reject);
+        });
+    }
+    
+    executeNextCommand(iterator, callback) {
+        const next = iterator.next();
+        if (next.done) {
+            return callback();
         }
 
-        if (fs.existsSync(newCwd)) {
-            this.shell.cwd = newCwd;
-        } else {
-            return `No such directory ${cdPath}`;
-        }
+        const cmd = next.value;
+        this.wrapExecuteCommand(cmd)
+            .then(() => {
+                return this.executeNextCommand(iterator, callback);
+            })
+            .catch(err => {
+                return callback(err);
+            })
     }
 
     execute(parsedLine) {
-        const allCommandsResolvedPromises = parsedLine.commands.map(cmd => {
-            if (cmd.cmd === constants.Command.Cd) {
-                return this.executeCdCommand(cmd.argsClean);
+        return new Promise((resolve, reject) => {
+            //we need to execute the commands serially
+            //we also need to pass the value of the previous one if its a pipe
+            const commands = parsedLine.commands;
+            if (!commands.length) {
+                return resolve();
             }
 
-            const systemCmd = this._findSystemPath(cmd.cmd);
-            if (systemCmd) {
-                return this.executeSystemCommand(systemCmd, cmd.argsClean);
-            } else {
-                return this.executeJshellCommand();
-            }
+            const commandsIterator = commands[Symbol.iterator]();
+            this.executeNextCommand(commandsIterator, (err) => {
+                if (err) {
+                    return reject(err);
+                }
+                
+                return resolve();
+            });
         });
-
-        return Promise.all(allCommandsResolvedPromises);
     }
 }
 

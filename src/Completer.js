@@ -29,6 +29,10 @@ class Completer {
     complete(line, callback) {
         //TODO: complete files, git branches, bash autocompletions, others?
         const parsedLine = this.parser.parse(line);
+        if (!parsedLine.commands.length) {
+            return callback(null, [[], line]);
+        }
+
         const lastCommand = parsedLine.commands[parsedLine.commands.length - 1];
         let toAutocomplete;
         if (lastCommand.args.length) {

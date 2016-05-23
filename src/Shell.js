@@ -82,8 +82,12 @@ class Shell {
 
     writeLn(line) {
         const allLineListenersPromises = this._lineCallbacks.map(cb => {
-            return new Promise(resolve => {
-                cb(line, resolve);
+            return new Promise((resolve, reject) => {
+                try {
+                    cb(line, resolve);
+                } catch (e) {
+                    reject(e);
+                }
             })
         });
 
@@ -91,6 +95,9 @@ class Shell {
             .then(() => {
                 this.rl.setPrompt(this.settings.prompt);
                 this.rl.prompt();
+            })
+            .catch(e => {
+                console.log(e);
             });
     }
 
