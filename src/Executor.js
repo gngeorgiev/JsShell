@@ -2,12 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const spawn = require('cross-spawn');
 const { execSync } = require('child_process');
-const constants = require('./constants');
 const stream = require('stream');
+
+const constants = require('./constants');
+const Evaluator = require('./Evaluator');
 
 class Executor {
     constructor(shell) {
         this.shell = shell;
+        this.evaluator = new Evaluator(this.shell);
 
         this.path = this.shell.settings.env.PATH;
         this.paths = this.path.split(':');
@@ -78,9 +81,7 @@ class Executor {
     }
 
     executeJshellCommand(cmd) {
-        return new Promise(resolve => {
-            return resolve(eval(cmd));
-        });
+        return this.evaluator.evaluate(cmd);
     }
 
     executeCdCommand(args) {

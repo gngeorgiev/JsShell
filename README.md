@@ -9,7 +9,7 @@ The configs and scripts are also pure JavaScript, which allows you to extend you
 
 # Installation
 
-Run `npm install -g jshell-node`.
+Run `npm install -g jshell`.
 
 In your terminal of choice change the executed command to `jshell`.
 

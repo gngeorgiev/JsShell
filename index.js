@@ -3,9 +3,12 @@ require('colors');
 const shell = require('./src/Shell');
 const Parser = require('./src/Parser');
 const Executor = require('./src/Executor');
+const { noop } = require('lodash');
 
 const parser = new Parser(shell);
 const executor = new Executor(shell);
+
+process.on('SIGINT', noop);
 
 shell.onLine((line, callback) => {
     if (!line) {

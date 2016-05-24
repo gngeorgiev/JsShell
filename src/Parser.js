@@ -23,6 +23,14 @@ class Parser {
         }
     }
 
+    _findJavaScriptExpressions(line) {
+        const tokens = [];
+
+        line.split('').forEach(() => {
+
+        });
+    }
+
     _tokenizeLine(line) {
         const tokens = [];
         const tokenSplitters = commandOperations.slice().concat(' ');
@@ -36,11 +44,19 @@ class Parser {
                 const indexMatch = index === line.length - 1 && !isOpChar ? index + 1 : index;
                 const token = splitLine.slice(lastMatchedIndex, indexMatch);
                 if (token.length) {
-                    tokens.push(token.join(''));
+                    tokens.push({
+                        value: token.join(''),
+                        isJavaScript: false,
+                        isOperationChar: false
+                    });
                 }
 
                 if (isOpChar) {
-                    tokens.push(char);
+                    tokens.push({
+                        value: char,
+                        isJavaScript: false,
+                        isOperationChar: true
+                    });
                 }
 
                 lastMatchedIndex = index + 1;
@@ -54,28 +70,25 @@ class Parser {
        const tokens = this._tokenizeLine(line);
        const commands = [];
 
-       let tokenIndex = 0;
-       tokens.slice().forEach(token => { //lets iterate on a copy of the array since we are modifying it
+       let lastTokenIndex = 0;
+       tokens.forEach((token, index) => { //lets iterate on a copy of the array since we are modifying it
            let command;
 
-           if (commandOperations.includes(token)) {
-               const cmdRaw = tokens.splice(0, tokenIndex);
-               tokens.splice(0, 1); //remove the operation, e.g. &&
-               command = this._buildCommand(cmdRaw, token);
-               tokenIndex = 0;
-           } else if (tokenIndex === tokens.length - 1 || (tokenIndex === 0 && tokens.length === 1)) {
-               command = this._buildCommand(tokens);
-           }
+           const isCommandOperation = token.isOperationChar;
+           const isLast = index === tokens.length - 1;
+           const isSingleCommand = index === 0 && tokens.length === 1;
 
-           if (command) {
+           if (isCommandOperation || isLast || isSingleCommand) {
+               const cmdRaw = isLast ? tokens.slice(lastTokenIndex) : tokens.slice(lastTokenIndex, index);
+               command = this._buildCommand(cmdRaw, token.value);
+
                command.index = commands.length;
                command.next = () => commands[command.index + 1];
                command.previous = () => commands[command.index - 1];
-
                commands.push(command);
-           }
 
-           tokenIndex++;
+               lastTokenIndex = index + 1;
+           }
        });
 
        return commands;
