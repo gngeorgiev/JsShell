@@ -4,8 +4,8 @@ const constants = {
     },
     CommandOperation: {
         And: '&&',
-        Background: '&',
         Pipe: '|',
+        Background: '&',
         Multiline: '\\',
         None: 'none'
     }
