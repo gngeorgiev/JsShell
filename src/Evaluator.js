@@ -10,7 +10,7 @@ class Evaluator {
 
     _buildContext() {
         const globalContext = global;
-        const staticContext = {
+        const staticContext = { //TODO: aliases
             _
         };
         const shellContext = {};

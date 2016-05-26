@@ -20,8 +20,8 @@ shell.onLine((line, callback) => {
         .then(() => {
             callback();
         })
-        .catch(error => {
-            console.error(error);
+        .catch(err => {
+            callback(err);
         });
 });
 
