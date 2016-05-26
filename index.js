@@ -17,8 +17,8 @@ shell.onLine((line, callback) => {
 
     const parsedLine = parser.parse(line);
     executor.execute(parsedLine)
-        .then(() => {
-            callback();
+        .then(result => {
+            callback(result);
         })
         .catch(err => {
             callback(err);

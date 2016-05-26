@@ -84,12 +84,12 @@ class Shell {
         const allLineListenersPromises = this._lineCallbacks.map(cb => {
             return new Promise((resolve, reject) => {
                 try {
-                    cb(line, err => {
-                        if (err) {
-                            return reject(err);
+                    cb(line, result => {
+                        if (result instanceof Error) {
+                            return reject(result);
                         }
 
-                        return resolve();
+                        return resolve(result);
                     });
                 } catch (e) {
                     reject(e);
@@ -103,20 +103,20 @@ class Shell {
         };
 
         Promise.all(allLineListenersPromises)
-            .then(setPrompt)
+            .then(results => {
+                results.filter(cmd => !!cmd.value).forEach(cmd => {
+                    this.printLn(cmd.value);
+                });
+                setPrompt();
+            })
             .catch(e => {
                 console.log(e);
                 setPrompt();
             });
     }
 
-    print(str, opts) {
-        opts = opts || {};
-        this.rl.write(str, opts);
-    }
-
-    printLn(str, opts) {
-        this.print(`\r\n${str}\r\n`, opts);
+    printLn(str) {
+        console.log(str);
     }
 }
 

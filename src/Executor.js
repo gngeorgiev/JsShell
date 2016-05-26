@@ -60,7 +60,7 @@ class Executor {
 
             if (previousCmdIsPipe) {
                 childProc.stdin.setEncoding('utf-8');
-                childProc.stdin.write(cmd.previous.value);
+                childProc.stdin.write(JSON.stringify(cmd.previous.value));
                 childProc.stdin.end();
             }
 
@@ -171,7 +171,7 @@ class Executor {
                     return reject(err);
                 }
                 
-                return resolve();
+                return resolve(commands[commands.length - 1]);
             });
         });
     }
