@@ -1,6 +1,6 @@
 {
-  "name": "jshell-node",
-  "version": "0.1.1",
+  "name": "jshell",
+  "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "bin": {
@@ -11,7 +11,7 @@
   },
   "preferGlobal": true,
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "colors": "^1.1.2",
     "cross-spawn": "^3.0.1",

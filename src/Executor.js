@@ -2,12 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const spawn = require('cross-spawn');
 const { execSync } = require('child_process');
-const constants = require('./constants');
 const stream = require('stream');
+
+const constants = require('./constants');
+const Evaluator = require('./Evaluator');
 
 class Executor {
     constructor(shell) {
         this.shell = shell;
+        this.evaluator = new Evaluator(this.shell);
 
         this.path = this.shell.settings.env.PATH;
         this.paths = this.path.split(':');
@@ -33,7 +36,7 @@ class Executor {
 
     executeSystemCommand(systemCmd, cmd) {
         return new Promise((resolve, reject) => {
-            const previousCmdIsPipe = cmd.previous() && cmd.previous().operation === constants.CommandOperation.Pipe;
+            const previousCmdIsPipe = cmd.previous && cmd.previous.operation === constants.CommandOperation.Pipe;
             const stdioStdin = previousCmdIsPipe ? 'pipe' : 'inherit';
 
             const cmdIsPipe = cmd.operation === constants.CommandOperation.Pipe;
@@ -57,7 +60,7 @@ class Executor {
 
             if (previousCmdIsPipe) {
                 childProc.stdin.setEncoding('utf-8');
-                childProc.stdin.write(cmd.previous().value);
+                childProc.stdin.write(cmd.previous.value);
                 childProc.stdin.end();
             }
 
@@ -78,9 +81,10 @@ class Executor {
     }
 
     executeJshellCommand(cmd) {
-        return new Promise(resolve => {
-            return resolve(eval(cmd));
-        });
+        return this.evaluator.evaluate(cmd.cmdFull)
+            .then(value => {
+                cmd.value = value;
+            });
     }
 
     executeCdCommand(args) {
@@ -116,12 +120,12 @@ class Executor {
                 if (systemCmd) {
                     commandExecutePromise = this.executeSystemCommand(systemCmd, cmd);
                 } else {
-                    commandExecutePromise = this.executeJshellCommand();
+                    commandExecutePromise = this.executeJshellCommand(cmd);
                 }
             }
 
             if (cmd.operation === constants.CommandOperation.And
-                && cmd.previous() && cmd.previous().exitCode !== 0) {
+                && cmd.previous && cmd.previous.exitCode !== 0) {
                 //if the cmd is executed with and we must ensure that the previous command exited with 0
                 return reject();
             } else if (cmd.operation === constants.CommandOperation.Background) {

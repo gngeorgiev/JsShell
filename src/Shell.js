@@ -84,20 +84,29 @@ class Shell {
         const allLineListenersPromises = this._lineCallbacks.map(cb => {
             return new Promise((resolve, reject) => {
                 try {
-                    cb(line, resolve);
+                    cb(line, err => {
+                        if (err) {
+                            return reject(err);
+                        }
+
+                        return resolve();
+                    });
                 } catch (e) {
                     reject(e);
                 }
             })
         });
 
+        const setPrompt = () => {
+            this.rl.setPrompt(this.settings.prompt);
+            this.rl.prompt();
+        };
+
         Promise.all(allLineListenersPromises)
-            .then(() => {
-                this.rl.setPrompt(this.settings.prompt);
-                this.rl.prompt();
-            })
+            .then(setPrompt)
             .catch(e => {
                 console.log(e);
+                setPrompt();
             });
     }
 
