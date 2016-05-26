@@ -81,7 +81,10 @@ class Executor {
     }
 
     executeJshellCommand(cmd) {
-        return this.evaluator.evaluate(cmd.cmdFull);
+        return this.evaluator.evaluate(cmd.cmdFull)
+            .then(value => {
+                cmd.value = value;
+            });
     }
 
     executeCdCommand(args) {

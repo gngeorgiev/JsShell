@@ -20,7 +20,7 @@ class Parser {
             cmdFull: command,
             operation: operation || constants.CommandOperation.None,
             index: commands.length,
-            result: null,
+            value: null,
             exitCode: null,
             get cmd() {
                 return commandTokens[0];
