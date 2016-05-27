@@ -3,35 +3,13 @@ const Settings = require('./Settings');
 const Completer = require('./Completer');
 const Executor = require('./Executor');
 const path = require('path');
+const Initializable = require('./Initializable');
 
-class Shell {
+class Shell extends Initializable {
     constructor() {
-        this.settings = Settings(this);
+        super();
 
-        this.home = this.settings.env.HOME;
-        this.cwd = this.home;
-        this.completer = new Completer(this);
-        this.executor = new Executor(this);
-
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-            terminal: true,
-            completer: this.completer.complete.bind(this.completer)
-        });
-        this.rl = rl;
-        this.rl.setPrompt(this.settings.prompt);
-        this.rl.prompt();
-
-        readline.emitKeypressEvents(process.stdin, rl);
-        if (process.stdin.isTTY) {
-            process.stdin.setRawMode(true);
-        }
-
-        this._lineCallbacks = [];
-        this._keypressCallbacks = [];
-
-        this._attachHandlers();
+        this._initialize();
     }
 
     get absoluteCwd() {
@@ -50,6 +28,39 @@ class Shell {
     set cwd(val) {
         this._cwd = path.normalize(val);
         process.chdir(this._cwd);
+    }
+
+    _initialize() {
+        Settings(this)
+            .then(settings => {
+                this.settings = settings;
+
+                this.home = this.settings.env.HOME;
+                this.cwd = this.home;
+                this.completer = new Completer(this);
+                this.executor = new Executor(this);
+
+                const rl = readline.createInterface({
+                    input: process.stdin,
+                    output: process.stdout,
+                    terminal: true,
+                    completer: this.completer.complete.bind(this.completer)
+                });
+                this.rl = rl;
+                this.setPrompt();
+
+                readline.emitKeypressEvents(process.stdin, rl);
+                if (process.stdin.isTTY) {
+                    process.stdin.setRawMode(true);
+                }
+
+                this._lineCallbacks = [];
+                this._keypressCallbacks = [];
+
+                this._attachHandlers();
+
+                this._fireInitialized();
+            });
     }
 
     _attachHandlers() {
@@ -80,6 +91,11 @@ class Shell {
         return this.executor.executeCommandSync(cmd);
     }
 
+    setPrompt() {
+        this.rl.setPrompt(this.settings.prompt);
+        this.rl.prompt();
+    }
+
     writeLn(line) {
         const allLineListenersPromises = this._lineCallbacks.map(cb => {
             return new Promise((resolve, reject) => {
@@ -97,21 +113,16 @@ class Shell {
             })
         });
 
-        const setPrompt = () => {
-            this.rl.setPrompt(this.settings.prompt);
-            this.rl.prompt();
-        };
-
         Promise.all(allLineListenersPromises)
             .then(results => {
-                results.filter(cmd => !!cmd.value).forEach(cmd => {
+                results.filter(cmd => !!cmd && !!cmd.value).forEach(cmd => {
                     this.printLn(cmd.value);
                 });
-                setPrompt();
+                this.setPrompt();
             })
             .catch(e => {
                 console.log(e);
-                setPrompt();
+                this.setPrompt();
             });
     }
 

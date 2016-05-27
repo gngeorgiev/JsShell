@@ -9,10 +9,12 @@ module.exports = function (shell) {
             const sign = '$'.yellow;
 
             const isGitRepo = fs.existsSync(path.join(shell.absoluteCwd, '.git'));
-            let gitBranch = isGitRepo ? shell.exec('git rev-parse --abbrev-ref HEAD').trim() : 'not a repo';
-            gitBranch = ('{' + gitBranch + '}').red;
+            if (isGitRepo) {
+                const gitBranch = shell.exec('git rev-parse --abbrev-ref HEAD');
+                return `${time} ${cwd} ${gitBranch} ${sign} `
+            }
 
-            return `${time} ${cwd} ${gitBranch} ${sign} `;
+            return `${time} ${cwd} ${sign} `;
         }
     }
 };

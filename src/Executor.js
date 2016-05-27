@@ -17,7 +17,7 @@ class Executor {
     }
 
     _findSystemPath(cmd) {
-        const systemPath = this.paths.find(systemPath => {
+        const systemPath = this.paths.concat(this.shell.absoluteCwd).find(systemPath => {
             const cmdSystemPath = path.join(systemPath, cmd);
             return fs.existsSync(cmdSystemPath);
         });
@@ -31,7 +31,7 @@ class Executor {
 
     executeCommandSync(cmd) {
         const res = execSync(cmd);
-        return res.toString('utf8');
+        return res.toString('utf8').trim();
     }
 
     executeSystemCommand(systemCmd, cmd) {
@@ -139,7 +139,7 @@ class Executor {
             }, reject);
         });
     }
-    
+
     executeNextCommand(iterator, callback) {
         const next = iterator.next();
         if (next.done) {
@@ -158,6 +158,8 @@ class Executor {
 
     execute(parsedLine) {
         return new Promise((resolve, reject) => {
+            this.shell.rl.pause();
+
             //we need to execute the commands serially
             //we also need to pass the value of the previous one if its a pipe
             const commands = parsedLine.commands;
@@ -167,10 +169,12 @@ class Executor {
 
             const commandsIterator = commands[Symbol.iterator]();
             this.executeNextCommand(commandsIterator, (err) => {
+                this.shell.rl.resume();
+
                 if (err) {
                     return reject(err);
                 }
-                
+
                 return resolve(commands[commands.length - 1]);
             });
         });

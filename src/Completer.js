@@ -54,32 +54,45 @@ class Completer {
             fileBaseDir = path.dirname(toAutocomplete);
         }
 
-        const searchDir = path.normalize(this.shell.absoluteCwd) === path.normalize(fileBaseDir) ?
-            fileBaseDir : path.join(this.shell.absoluteCwd, fileBaseDir.replace(this.shell.absoluteCwd, ''));
-        fs.readdir(searchDir, (err, filenames) => {
+        let searchDir;
+        if (fileBaseDir.startsWith('/')) {
+            searchDir = toAutocomplete;
+        } else {
+            searchDir = path.normalize(this.shell.absoluteCwd) === path.normalize(fileBaseDir) ?
+                fileBaseDir : path.join(this.shell.absoluteCwd, fileBaseDir.replace(this.shell.absoluteCwd, ''));
+        }
+
+        fs.stat(searchDir, (err, stat) => {
             if (err) {
                 return callback(err);
             }
 
-            if (fileToMatch === '') {
-                return callback(null, [filenames, line]);
+            if (stat.isDirectory() && !toAutocomplete.endsWith('/')) {
+                const directoryAutocomplete = this._intersectStrings(line, toAutocomplete + '/');
+                return callback(null, [[directoryAutocomplete], line])
             }
 
-            const foundFile = filenames.find(filename => {
-                return filename.startsWith(fileToMatch);
-            }) || '';
+            fs.readdir(searchDir, (err, filenames) => {
+                if (err) {
+                    return callback(err);
+                }
 
-            if (!foundFile) {
-                return callback(null, [], line);
-            }
+                if (fileToMatch === '') {
+                    return callback(null, [filenames, line]);
+                }
 
-            let foundFilePath = path.join(fileBaseDir, foundFile);
-            if (line.includes('~')) {
-                foundFilePath = foundFilePath.replace(this.shell.home, '~');
-            }
+                const foundFile = filenames.find(filename => {
+                        return filename.startsWith(fileToMatch);
+                    }) || '';
 
-            const mergedLineWithResult = this._intersectStrings(line, foundFilePath);
-            return callback(null, [[mergedLineWithResult], line]);
+                if (!foundFile) {
+                    return callback(null, [], line);
+                }
+
+                const foundFilePath = expandPath(path.join(fileBaseDir, foundFile), this.shell);
+                const mergedLineWithResult = this._intersectStrings(line, foundFilePath);
+                return callback(null, [[mergedLineWithResult], line]);
+            });
         });
     }
 }
