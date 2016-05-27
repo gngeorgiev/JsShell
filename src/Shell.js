@@ -40,16 +40,15 @@ class Shell extends Initializable {
                 this.completer = new Completer(this);
                 this.executor = new Executor(this);
 
-                const rl = readline.createInterface({
+                this.rl = readline.createInterface({
                     input: process.stdin,
                     output: process.stdout,
                     terminal: true,
                     completer: this.completer.complete.bind(this.completer)
                 });
-                this.rl = rl;
                 this.setPrompt();
 
-                readline.emitKeypressEvents(process.stdin, rl);
+                readline.emitKeypressEvents(process.stdin, this.rl);
                 if (process.stdin.isTTY) {
                     process.stdin.setRawMode(true);
                 }

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
+const readline = require('readline');
 const Initializable = require('./Initializable');
 
 const defaultConfig = {
@@ -45,8 +46,12 @@ class Settings extends Initializable {
                 return this._readConfig();
             }
 
-            this.shell.rl.question(`There does not seem to be a configuration for JShell initialized. Where do you want to initialize it? (default: ${this.configPath})`.green,
+            const rl = readline.createInterface(process.stdin, process.stdout);
+
+            rl.question(`There does not seem to be a configuration for JShell initialized. Where do you want to initialize it? (default: ${this.configPath})`.green,
                     configPath => {
+                        rl.close();
+
                         if (configPath) {
                             this.configPath = configPath;
                         }
