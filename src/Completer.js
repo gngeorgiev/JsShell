@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const Parser = require('./Parser');
 const { times } = require('lodash');
-const { expandPath } = require('./shellUtils');
+const { expandPath, collapsePath } = require('./shellUtils');
 
 class Completer {
     constructor(shell) {
@@ -55,44 +55,51 @@ class Completer {
         }
 
         let searchDir;
-        if (fileBaseDir.startsWith('/')) {
+        if (fileBaseDir.startsWith('/') && fs.existsSync(toAutocomplete)) {
             searchDir = toAutocomplete;
         } else {
             searchDir = path.normalize(this.shell.absoluteCwd) === path.normalize(fileBaseDir) ?
                 fileBaseDir : path.join(this.shell.absoluteCwd, fileBaseDir.replace(this.shell.absoluteCwd, ''));
         }
 
-        fs.stat(searchDir, (err, stat) => {
+        fs.readdir(searchDir, (err, filenames) => {
             if (err) {
+                console.log(err);
                 return callback(err);
             }
-
-            if (stat.isDirectory() && !toAutocomplete.endsWith('/')) {
-                const directoryAutocomplete = this._intersectStrings(line, toAutocomplete + '/');
-                return callback(null, [[directoryAutocomplete], line])
+            
+            if (fileToMatch === '') {
+                return callback(null, [filenames, line]);
             }
 
-            fs.readdir(searchDir, (err, filenames) => {
-                if (err) {
-                    return callback(err);
-                }
-
-                if (fileToMatch === '') {
-                    return callback(null, [filenames, line]);
-                }
-
-                const foundFile = filenames.find(filename => {
-                        return filename.startsWith(fileToMatch);
-                    }) || '';
-
-                if (!foundFile) {
-                    return callback(null, [], line);
-                }
-
-                const foundFilePath = expandPath(path.join(fileBaseDir, foundFile), this.shell);
-                const mergedLineWithResult = this._intersectStrings(line, foundFilePath);
-                return callback(null, [[mergedLineWithResult], line]);
+            const foundFiles = filenames.filter(filename => {
+                return filename.startsWith(fileToMatch);
             });
+
+            if (!foundFiles.length) {
+                return callback(null, [], line);
+            }
+
+            if (foundFiles.length === 1) {
+                const foundFile = foundFiles[0];
+                let foundFilePath = expandPath(path.join(fileBaseDir, foundFile), this.shell);
+                fs.stat(foundFilePath, (err, stat) => {
+                    if (stat && stat.isDirectory()) {
+                        foundFilePath += '/';
+                    }
+
+                    let correctedLine = line;
+                    if (line.includes('~')) {
+                        correctedLine = collapsePath(line, this.shell);
+                        foundFilePath = collapsePath(foundFilePath, this.shell);
+                    }
+
+                    const mergedLineWithResult = this._intersectStrings(correctedLine, foundFilePath);
+                    return callback(null, [[mergedLineWithResult], line]);
+                });
+            } else {
+                return callback(null, [foundFiles, line]);
+            }
         });
     }
 }

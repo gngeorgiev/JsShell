@@ -46,14 +46,14 @@ class Settings extends Initializable {
                 return this._readConfig();
             }
 
-            const rl = readline.createInterface(process.stdin, process.stdout);
+            const questionRl = readline.createInterface(process.stdin, process.stdout);
 
-            rl.question(`There does not seem to be a configuration for JShell initialized. Where do you want to initialize it? (default: ${this.configPath})`.green,
-                    configPath => {
-                        rl.close();
+            questionRl.question(`There does not seem to be a configuration for JShell initialized. Do you want to initialize it now? y/n (${this.configPath}) `.green,
+                    yesNo => {
+                        questionRl.close();
 
-                        if (configPath) {
-                            this.configPath = configPath;
+                        if (yesNo === 'n' || yesNo === 'no') {
+                            return process.exit(0);
                         }
 
                         fs.mkdir(this.configFolder, err => {

@@ -10,7 +10,11 @@ module.exports = function (shell) {
 
             const isGitRepo = fs.existsSync(path.join(shell.absoluteCwd, '.git'));
             if (isGitRepo) {
-                const gitBranch = shell.exec('git rev-parse --abbrev-ref HEAD');
+                let gitBranch = `{${shell.exec('git rev-parse --abbrev-ref HEAD')}}`;
+                let isDirty = shell.exec('git status --porcelain');
+                gitBranch = isDirty ? gitBranch.red : gitBranch.green;
+                
+                
                 return `${time} ${cwd} ${gitBranch} ${sign} `
             }
 

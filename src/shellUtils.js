@@ -9,6 +9,9 @@ const shellUtils = {
         });
 
         return expandedPath;
+    },
+    collapsePath(path, shell) {
+        return path.replace(shell.settings.env.HOME, '~');
     }
 };
 
