@@ -65,7 +65,13 @@ class Shell extends Initializable {
     _attachHandlers() {
         this.rl.on('line', line => {
             this.writeLn(line);
-        }).on('SIGINT', () => false);
+        }).on('SIGINT', () => {
+            this.rl.write('^C');
+            this.rl.clearLine(process.stdin, 0);
+            this.setPrompt();
+
+            return false;
+        }).on('close', () => process.exit(0));
     }
 
     onLine(cb) {
