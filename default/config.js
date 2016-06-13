@@ -3,7 +3,7 @@ const path = require('path');
 
 module.exports = function (shell) {
     return {
-        prompt: () => {
+        prompt() {
             const time = new Date().toLocaleTimeString().green;
             const cwd = shell.cwd.cyan;
             const sign = '$'.yellow;
@@ -19,6 +19,18 @@ module.exports = function (shell) {
             }
 
             return `${time} ${cwd} ${sign} `;
+        },
+        env() {
+            return Object.assign({}, process.env, {/*custom env here*/});
+        },
+        aliases() {
+            return {
+                'ls': 'ls --color=auto',
+                'll': 'ls -la',
+                'l': 'll',
+                's': 'sudo',
+                'g': 'git'
+            }
         }
     }
 };

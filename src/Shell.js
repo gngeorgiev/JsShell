@@ -1,6 +1,6 @@
 const readline = require('readline');
 const Settings = require('./Settings');
-const Completer = require('./Completer');
+const Completer = require('./Complete/Completer');
 const Executor = require('./Executor');
 const path = require('path');
 const Initializable = require('./Initializable');
@@ -31,35 +31,35 @@ class Shell extends Initializable {
     }
 
     _initialize() {
-        Settings(this)
-            .then(settings => {
-                this.settings = settings;
+        Settings(this, settings => {
+            this.settings = settings;
+            this.paths = this.settings.env.PATH.split(':');
 
-                this.home = this.settings.env.HOME;
-                this.cwd = this.home;
-                this.completer = new Completer(this);
-                this.executor = new Executor(this);
+            this.home = this.settings.env.HOME;
+            this.cwd = this.home;
+            this.completer = new Completer(this);
+            this.executor = new Executor(this);
 
-                this.rl = readline.createInterface({
-                    input: process.stdin,
-                    output: process.stdout,
-                    terminal: true,
-                    completer: this.completer.complete.bind(this.completer)
-                });
-                this.setPrompt();
-
-                readline.emitKeypressEvents(process.stdin, this.rl);
-                if (process.stdin.isTTY) {
-                    process.stdin.setRawMode(true);
-                }
-
-                this._lineCallbacks = [];
-                this._keypressCallbacks = [];
-
-                this._attachHandlers();
-
-                this._fireInitialized();
+            this.rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout,
+                terminal: true,
+                completer: this.completer.complete.bind(this.completer)
             });
+            this.setPrompt();
+
+            readline.emitKeypressEvents(process.stdin, this.rl);
+            if (process.stdin.isTTY) {
+                process.stdin.setRawMode(true);
+            }
+
+            this._lineCallbacks = [];
+            this._keypressCallbacks = [];
+
+            this._attachHandlers();
+
+            this._fireInitialized();
+        });
     }
 
     _attachHandlers() {

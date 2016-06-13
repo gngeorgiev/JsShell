@@ -83,26 +83,20 @@ class Settings extends Initializable {
     }
 }
 
-module.exports = function (shell) {
+module.exports = function (shell, callback) {
     const settings = new Settings(shell);
 
-    return new Promise((resolve, reject) => {
-        try {
-            settings.onInitialized(() => {
-                const proxy = new Proxy(settings, {
-                    get(settings, prop) {
-                        if (settings.config[prop]) {
-                            return settings._callOrGet(prop);
-                        }
+    settings.onInitialized(() => {
+        const proxy = new Proxy(settings, {
+            get(settings, prop) {
+                if (settings.config[prop]) {
+                    return settings._callOrGet(prop);
+                }
 
-                        return null;
-                    }
-                });
+                return null;
+            }
+        });
 
-                return resolve(proxy);
-            });
-        } catch (e) {
-            return reject(e);
-        }
+        return callback(proxy);
     });
 };

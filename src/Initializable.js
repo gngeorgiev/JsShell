@@ -6,7 +6,7 @@ class Initializable {
     }
 
     _fireInitialized(args) {
-        this._onInitializedCallbacks.forEach(cb => cb(args));
+        process.nextTick(() => this._onInitializedCallbacks.forEach(cb => cb(args)));
     }
 
     onInitialized(cb) {

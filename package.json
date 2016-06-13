@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "bin": {
-      "jshell": "bin/jshell.js"
+    "jshell": "bin/jshell.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,6 +13,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "co": "^4.6.0",
     "colors": "^1.1.2",
     "cross-spawn": "^3.0.1",
     "lodash": "^4.12.0"

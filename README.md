@@ -48,10 +48,11 @@ module.exports = function (shell) {
 - [X] Configuration file
   - [X] - Prompt
   - [X] - Env
+  - [X] - Aliases
   - [ ] - Others?
 - [X] Autocomplete based on files
 - [ ] Autocomplete from bash completion files
-- [ ] Execute JavaScript inside the shell
+- [X] Execute JavaScript inside the shell
 - [X] Multiple commands - `&&`
 - [ ] Multiline - `\`
 - [X] Pipes - `|`

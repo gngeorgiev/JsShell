@@ -1,5 +1,5 @@
-const { expandPath } = require('./shellUtils');
 const constants = require('./constants');
+const Command = require('./Command');
 const _ = require('lodash');
 
 const commandOperations = _
@@ -13,57 +13,8 @@ class Parser {
         this.shell = shell;
     }
 
-    _getCommandTokens(command) {
-        const commandTokens = [];
-
-        let matchedIndex = 0;
-        let openningQuote = null;
-        const pushToken = (index) => {
-            commandTokens.push(command.substring(matchedIndex, index + 1));
-            matchedIndex = index + 1;
-        };
-
-        command.split('').forEach((char, index) => {
-            if (char === ' ' && openningQuote === null || index === command.length - 1) {
-                return pushToken(index);
-            }
-
-            if (char === '"' || char === "'") {
-                if (openningQuote === char) {
-                    openningQuote = null;
-                    return pushToken(index);
-                } else {
-                    openningQuote = char;
-                }
-            }
-        });
-
-        return commandTokens;
-    }
-
     _buildCommand(command, operation, commands) {
-        const shell = this.shell;
-        const commandTokens = this._getCommandTokens(command);
-
-        return {
-            cmdFull: command,
-            operation: operation || constants.CommandOperation.None,
-            index: commands.length,
-            value: null,
-            exitCode: null,
-            get cmd() {
-                return commandTokens[0].trim();
-            },
-            get args() {
-                return commandTokens.slice(1).map(arg => arg.trim()).map(arg => expandPath(arg, shell));
-            },
-            get next() {
-                return commands[this.index + 1];
-            },
-            get previous() {
-                return commands[this.index - 1];
-            }
-        };
+        return new Command(this.shell, command, operation, commands);
     }
 
     _parseLine(line) {

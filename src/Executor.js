@@ -6,6 +6,7 @@ const stream = require('stream');
 
 const constants = require('./constants');
 const Evaluator = require('./Evaluator');
+const { flow } = require('./utils');
 
 class Executor {
     constructor(shell) {
@@ -13,7 +14,7 @@ class Executor {
         this.evaluator = new Evaluator(this.shell);
 
         this.path = this.shell.settings.env.PATH;
-        this.paths = this.path.split(':');
+        this.paths = this.shell.paths;
     }
 
     _findSystemPath(cmd) {
@@ -81,7 +82,7 @@ class Executor {
     }
 
     executeJshellCommand(cmd) {
-        return this.evaluator.evaluate(cmd.cmdFull)
+        return this.evaluator.evaluate(cmd.cmdRaw)
             .then(value => {
                 cmd.value = value;
             });
@@ -109,7 +110,7 @@ class Executor {
         });
     }
 
-    wrapExecuteCommand(cmd) {
+    executeCommand(cmd) {
         return new Promise((resolve, reject) => {
             let commandExecutePromise;
 
@@ -140,22 +141,6 @@ class Executor {
         });
     }
 
-    executeNextCommand(iterator, callback) {
-        const next = iterator.next();
-        if (next.done) {
-            return callback();
-        }
-
-        const cmd = next.value;
-        this.wrapExecuteCommand(cmd)
-            .then(() => {
-                return this.executeNextCommand(iterator, callback);
-            })
-            .catch(err => {
-                return callback(err);
-            })
-    }
-
     execute(parsedLine) {
         return new Promise((resolve, reject) => {
             this.shell.rl.pause();
@@ -167,15 +152,14 @@ class Executor {
                 return resolve();
             }
 
-            const commandsIterator = commands[Symbol.iterator]();
-            this.executeNextCommand(commandsIterator, (err) => {
+            return flow.serial(commands, command => {
+                return this.executeCommand(command);
+            }).then(() => {
                 this.shell.rl.resume();
-
-                if (err) {
-                    return reject(err);
-                }
-
-                return resolve(commands[commands.length - 1]);
+                return resolve(commands[commands.length - 1])
+            }).catch(err => {
+                this.shell.rl.resume();
+                return reject(err);
             });
         });
     }
