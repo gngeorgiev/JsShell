@@ -128,6 +128,16 @@ class Shell extends Initializable {
     printLn(str) {
         console.log(str);
     }
+
+    pause() {
+        rl.pause();
+        process.stdin.setRawMode(false);
+    }
+
+    resume() {
+        this.shell.rl.resume();
+        process.stdin.setRawMode(true);
+    }
 }
 
 module.exports = new Shell();

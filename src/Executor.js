@@ -50,12 +50,12 @@ class Executor {
 
             const childProc = spawn(systemCmd, cmd.args, childProcOptions);
 
-            const stdoutStream = new stream.Writable();
-            stdoutStream._write = data => {
-                cmd.value = data.toString();
-            };
-
             if (cmdIsPipe) {
+                const stdoutStream = new stream.Writable();
+                stdoutStream._write = data => {
+                    cmd.value = data.toString();
+                };
+
                 childProc.stdout.pipe(stdoutStream);
             }
 
@@ -143,7 +143,7 @@ class Executor {
 
     execute(parsedLine) {
         return new Promise((resolve, reject) => {
-            this.shell.rl.pause();
+            this.shell.pause();
 
             //we need to execute the commands serially
             //we also need to pass the value of the previous one if its a pipe
@@ -155,10 +155,10 @@ class Executor {
             return flow.serial(commands, command => {
                 return this.executeCommand(command);
             }).then(() => {
-                this.shell.rl.resume();
+                this.shell.resume();
                 return resolve(commands[commands.length - 1])
             }).catch(err => {
-                this.shell.rl.resume();
+                this.shell.resume();
                 return reject(err);
             });
         });
