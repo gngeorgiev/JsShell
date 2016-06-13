@@ -11,16 +11,14 @@ class Evaluator {
     _buildContext() {
         const shell = this.shell;
         const globalContext = global;
-        const staticContext = { //TODO: aliases
-            _
-        };
+        const userContext = this.shell.settings.context;
         const shellContext = {};
         Object.getOwnPropertyNames(this.shell).forEach(n => shellContext[n] = this.shell[n]);
         Object.getOwnPropertyNames(Object.getPrototypeOf(this.shell))
             .filter(n => n !== 'constructor' && _.isFunction(this.shell[n]) && n.charAt(0) !== '_')
             .forEach(n => shellContext[n] = this.shell[n].bind(this.shell));
 
-        const context = _.extend({}, globalContext, staticContext, shellContext);
+        const context = _.extend({}, globalContext, userContext, shellContext);
 
         return new Proxy(context, {
             get(context, property) {

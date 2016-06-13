@@ -130,12 +130,12 @@ class Shell extends Initializable {
     }
 
     pause() {
-        rl.pause();
+        this.rl.pause();
         process.stdin.setRawMode(false);
     }
 
     resume() {
-        this.shell.rl.resume();
+        this.rl.resume();
         process.stdin.setRawMode(true);
     }
 }

@@ -49,9 +49,10 @@ module.exports = function (shell) {
   - [X] - Prompt
   - [X] - Env
   - [X] - Aliases
+  - [X] - Custom Context
   - [ ] - Others?
 - [X] Autocomplete based on files
-- [ ] Autocomplete from bash completion files
+- [ ] Autocomplete from bash completion files?
 - [X] Execute JavaScript inside the shell
 - [X] Multiple commands - `&&`
 - [ ] Multiline - `\`
@@ -65,7 +66,7 @@ module.exports = function (shell) {
 
 * Clone the repo
 * Run the shell with `node index.js`
-* For debugging run with `node --debug=5858 index.js` and attach a remote node debugger
+* For debugging run with `node --debug=5050 index.js` and attach a remote node debugger
 * There are no tests just yet, but stay tuned for those
 
 # Contributing
@@ -77,9 +78,8 @@ module.exports = function (shell) {
 
 Make sure to keep the code style the same.
 
-# License
+# License - MIT
 
-```
 The MIT License (MIT)
 Copyright (c) 2016 JShell
 
@@ -88,4 +88,3 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```

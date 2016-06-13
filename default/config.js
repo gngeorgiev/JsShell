@@ -31,6 +31,13 @@ module.exports = function (shell) {
                 's': 'sudo',
                 'g': 'git'
             }
+        },
+        context() {
+            return {
+                sayHi() {
+                    return shell.printLn(`Hello ${shell.settings.env.USER}!`);
+                }
+            }
         }
     }
 };
