@@ -63,27 +63,13 @@ class Shell extends Initializable {
     }
 
     _attachHandlers() {
-        process.stdin.on('keypress', (_, data) => {
-            this._keyPress(data);
-        });
-
         this.rl.on('line', line => {
             this.writeLn(line);
-        }).on('close', () => {
-            process.exit(0);
-        });
-    }
-
-    _keyPress(data) {
-        this._keypressCallbacks.forEach(cb => cb(data));
+        }).on('SIGINT', () => false);
     }
 
     onLine(cb) {
         this._lineCallbacks.push(cb);
-    }
-
-    onKeypress(cb) {
-        this._keypressCallbacks.push(cb);
     }
 
     exec(cmd) {
