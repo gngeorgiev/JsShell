@@ -7,7 +7,7 @@ domain.on('error', err => {
 });
 
 domain.run(() => {
-    const shell = require('./src/Shell');
+    const shell = require('./src/shell');
     const Parser = require('./src/Parser');
     const Executor = require('./src/Executor');
 
