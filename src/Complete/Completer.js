@@ -59,7 +59,7 @@ class Completer {
         }, r => r && r.length).then(results => {
             return callback(null, [results, line]);
         }).catch(err => {
-            console.log(err);
+            this.shell.error(err);
             return callback(err, [[], line]);
         });
     }

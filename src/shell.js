@@ -113,13 +113,16 @@ class Shell extends Initializable {
                 this.setPrompt();
             })
             .catch(e => {
-                console.log(e.message);
-                if (e.stack) {
-                    console.log(e.stack);
-                }
-
+                this.error(e);
                 this.setPrompt();
             });
+    }
+
+    error(e) {
+        console.log(e.message);
+        if (e.stack) {
+            console.log(e.stack);
+        }
     }
 
     printLn(str) {

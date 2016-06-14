@@ -5,6 +5,7 @@ const readline = require('readline');
 const spawn = require('cross-spawn');
 const vm = require('vm');
 
+const { error } = require('./utils');
 const Initializable = require('./Initializable');
 
 const defaultConfig = {
@@ -94,8 +95,8 @@ class Settings extends Initializable {
             return this._readConfig();
         }
 
-        const printError = error => {
-            return console.log(`Failed initializing config: ${error}`)
+        const printError = err => {
+            return this.shell.error(error.wrap(`Failed initializing config: ${err}`));
         };
 
         this._askInitShellQuestion()
