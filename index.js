@@ -1,30 +1,37 @@
 require('colors');
+const domain = require('domain').create();
 
-const shell = require('./src/Shell');
-const Parser = require('./src/Parser');
-const Executor = require('./src/Executor');
+domain.on('error', err => {
+    require('fs').writeFileSync('debug.log', err.toString(), 'utf-8');
+});
 
-shell.onInitialized(() => {
-    const parser = new Parser(shell);
-    const executor = new Executor(shell);
+domain.run(() => {
+    const shell = require('./src/Shell');
+    const Parser = require('./src/Parser');
+    const Executor = require('./src/Executor');
 
-    shell.onLine((line, callback) => {
-        if (!line) {
-            return callback();
+    shell.onInitialized(() => {
+        const parser = new Parser(shell);
+        const executor = new Executor(shell);
+
+        shell.onLine((line, callback) => {
+            if (!line) {
+                return callback();
+            }
+
+            const parsedLine = parser.parse(line);
+            executor.execute(parsedLine)
+                .then(result => {
+                    callback(result);
+                })
+                .catch(err => {
+                    callback(err);
+                });
+        });
+
+        let params = process.argv.slice(2);
+        if (params.length) {
+            shell.writeLn(params.join(' '));
         }
-
-        const parsedLine = parser.parse(line);
-        executor.execute(parsedLine)
-            .then(result => {
-                callback(result);
-            })
-            .catch(err => {
-                callback(err);
-            });
     });
-
-    let params = process.argv.slice(2);
-    if (params.length) {
-        shell.writeLn(params.join(' '));
-    }
 });

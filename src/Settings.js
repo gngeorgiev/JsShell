@@ -1,7 +1,10 @@
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
 const _ = require('lodash');
 const readline = require('readline');
+const spawn = require('cross-spawn');
+const vm = require('vm');
+
 const Initializable = require('./Initializable');
 
 const defaultConfig = {
@@ -9,7 +12,7 @@ const defaultConfig = {
     env: process.env
 };
 
-const defaultConfigPath = '../default/config.js';
+const defaultConfigPath = path.resolve(__dirname, '..', 'default');
 
 class Settings extends Initializable {
     constructor(shell) {
@@ -25,51 +28,98 @@ class Settings extends Initializable {
 
     _readConfig() {
         try {
-            const userConfig = require(this.configPath);
+            const configFolder = this.configFolder;
+            const module = {exports: {}};
+            const context = vm.createContext(_.extend({}, global, {
+                module,
+
+                require(module) {
+                    try {
+                        return require(path.join(configFolder, 'node_modules', module));
+                    } catch (e) {
+                        return require(module);
+                    }
+                }
+            }));
+
+            const configContents = fs.readFileSync(this.configPath, {encoding: 'utf8'});
+            vm.runInContext(configContents, context);
+            const userConfig = module.exports;
             const config = _.isFunction(userConfig) ? userConfig(this.shell) : userConfig;
 
-            this.config = Object.assign({}, this.config, config);
+            this.config = _.extend({}, this.config, config);
+            this._fireInitialized();
         } catch (e) {
-            console.log(`Error while reading config - ${this.configPath}: ${e}`);
+            console.log(`Error while reading config - ${this.configPath}: ${e}`.red);
         }
+    }
 
-        this._fireInitialized();
+    _installNpmModules() {
+        return new Promise(resolve => {
+            console.log('Installing config npm modules...');
+
+            spawn('npm', ['install'], {
+                cwd: this.configFolder,
+                detached: true,
+                stdio: 'inherit'
+            }).on('exit', () => {
+                resolve();
+            });
+        });
+    }
+
+    _askInitShellQuestion() {
+        return new Promise(resolve => {
+            if (!process.stdin.isTTY) {
+                return resolve(true);
+            }
+
+            const questionRl = readline.createInterface(process.stdin, process.stdout);
+            questionRl.question(`There does not seem to be a configuration for JShell initialized. Do you want to initialize it now? y/n (${this.configPath}) `.green,
+                yesNo => {
+                    questionRl.close();
+
+                    if (yesNo === 'n' || yesNo === 'no') {
+                        return resolve(false);
+                    }
+
+                    return resolve(true);
+                });
+        });
     }
 
     _init() {
+        const configExists = fs.existsSync(this.configPath);
+        if (configExists) {
+            return this._readConfig();
+        }
+
         const printError = error => {
             return console.log(`Failed initializing config: ${error}`)
         };
 
-        fs.exists(this.configPath, exists => {
-            if (exists) {
-                return this._readConfig();
-            }
+        this._askInitShellQuestion()
+            .then(yesNo => {
+                if (!yesNo) {
+                    return process.exit(0);
+                }
 
-            const questionRl = readline.createInterface(process.stdin, process.stdout);
+                fs.mkdir(this.configFolder, err => {
+                    if (err && err.code !== 'EEXIST') {
+                        return printError(err);
+                    }
 
-            questionRl.question(`There does not seem to be a configuration for JShell initialized. Do you want to initialize it now? y/n (${this.configPath}) `.green,
-                    yesNo => {
-                        questionRl.close();
-
-                        if (yesNo === 'n' || yesNo === 'no') {
-                            return process.exit(0);
+                    fs.copy(defaultConfigPath, this.configFolder, err => {
+                        if (err) {
+                            return printError(err);
                         }
 
-                        fs.mkdir(this.configFolder, err => {
-                            if (err && err.code !== 'EEXIST') {
-                                return printError(err);
-                            }
-
-                            const rs = fs.createReadStream(path.join(__dirname, defaultConfigPath));
-                            rs.on('error', printError);
-                            const ws = fs.createWriteStream(this.configPath);
-                            ws.on('error', printError);
-                            ws.on('finish', () => this._readConfig());
-                            rs.pipe(ws);
+                        this._installNpmModules().then(() => {
+                            this._readConfig();
                         });
                     });
-        });
+                });
+            });
     }
 
     _callOrGet(field) {

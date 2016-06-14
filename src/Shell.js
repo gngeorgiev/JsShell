@@ -54,10 +54,7 @@ class Shell extends Initializable {
             }
 
             this._lineCallbacks = [];
-            this._keypressCallbacks = [];
-
             this._attachHandlers();
-
             this._fireInitialized();
         });
     }
@@ -80,6 +77,10 @@ class Shell extends Initializable {
 
     exec(cmd) {
         return this.executor.executeCommandSync(cmd);
+    }
+
+    spawn(cmd, args, opts) {
+        return this.executor.spawn(cmd, args, opts);
     }
 
     setPrompt() {
@@ -123,12 +124,16 @@ class Shell extends Initializable {
 
     pause() {
         this.rl.pause();
-        process.stdin.setRawMode(false);
+        if (process.stdin.setRawMode) {
+            process.stdin.setRawMode(false);
+        }
     }
 
     resume() {
         this.rl.resume();
-        process.stdin.setRawMode(true);
+        if (process.stdin.setRawMode) {
+            process.stdin.setRawMode(true);
+        }
     }
 }
 

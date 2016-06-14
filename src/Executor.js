@@ -30,6 +30,10 @@ class Executor {
         return null;
     }
 
+    spawn(cmd, args, options) {
+        return spawn(cmd, args, options);
+    }
+
     executeCommandSync(cmd) {
         const res = execSync(cmd);
         return res.toString('utf8').trim();
@@ -48,7 +52,7 @@ class Executor {
                 stdio: [stdioStdin, stdioStdout, 'inherit']
             };
 
-            const childProc = spawn(systemCmd, cmd.args, childProcOptions);
+            const childProc = this.spawn(systemCmd, cmd.args, childProcOptions);
 
             if (cmdIsPipe) {
                 const stdoutStream = new stream.Writable();

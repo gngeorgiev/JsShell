@@ -41,7 +41,7 @@ class Command {
     }
 
     _getCommandFromAliases(cmd) {
-        const aliases = this.shell.settings.aliases;
+        const aliases = this.shell.settings.aliases || {};
 
         let iterations = 0;
         const maxIterations = 10000; //lets try not to make an infinite loop
