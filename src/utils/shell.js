@@ -1,6 +1,6 @@
 class ShellUtils {
-    expandPath(path, shell) {
-        return path.replace(new RegExp('\$[a-zA-Z]+|\~', 'g'), (match) => {
+    static expandPath(path, shell) {
+        return path.replace(new RegExp('\$[a-zA-Z]+|\~', 'g'), match => {
             if (match === '~') {
                 match = 'HOME';
             }
@@ -9,9 +9,9 @@ class ShellUtils {
         });
     }
 
-    collapsePath(path, shell) {
+    static collapsePath(path, shell) {
         return path.replace(shell.settings.env.HOME, '~');
     }
 }
 
-module.exports = new ShellUtils();
+module.exports = ShellUtils;

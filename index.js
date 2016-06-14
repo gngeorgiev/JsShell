@@ -2,6 +2,7 @@ require('colors');
 const domain = require('domain').create();
 
 domain.on('error', err => {
+    console.log(err);
     require('fs').writeFileSync('debug.log', err.toString(), 'utf-8');
 });
 
@@ -25,6 +26,10 @@ domain.run(() => {
                     callback(result);
                 })
                 .catch(err => {
+                    if (!(err instanceof Error)) {
+                        err = new Error(err);
+                    }
+
                     callback(err);
                 });
         });

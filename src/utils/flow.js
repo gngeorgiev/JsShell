@@ -12,7 +12,9 @@ class FlowUtils {
                     return;
                 }
 
-                yield callback(item);
+                yield callback(item).catch(err => {
+                    throw err;
+                });
             }
         }.bind(this));
 

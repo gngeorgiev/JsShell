@@ -6,7 +6,7 @@ const stream = require('stream');
 
 const constants = require('./constants');
 const Evaluator = require('./Evaluator');
-const { flow } = require('./utils');
+const { flow, error } = require('./utils');
 
 class Executor {
     constructor(shell) {
@@ -93,7 +93,7 @@ class Executor {
     }
 
     executeCdCommand(args) {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             let cdPath = args.length ? args[0] : '..';
 
             let newCwd = '';
@@ -105,11 +105,21 @@ class Executor {
 
             fs.exists(newCwd, exists => {
                 if (exists) {
-                    this.shell.cwd = newCwd;
-                    return resolve();
-                }
+                    return fs.stat(newCwd, (err, stat) => {
+                        if (err) {
+                            return reject(error.wrapNoStack(err));
+                        }
 
-                return resolve(`No such directory ${cdPath}`)
+                        if (stat.isDirectory()) {
+                            this.shell.cwd = newCwd;
+                            return resolve();
+                        }
+
+                        return reject(error.wrapNoStack(`The target is not a directory: ${cdPath}`));
+                    });
+                } else {
+                    return reject(error.wrapNoStack(`No such directory: ${cdPath}`));
+                }
             });
         });
     }
