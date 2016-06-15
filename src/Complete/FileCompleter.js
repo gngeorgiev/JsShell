@@ -29,12 +29,16 @@ class FileCompleter {
         return new Promise((resolve, reject) => {
             fs.readdir(this.searchDir, (err, fileNames) => {
                 if (err) {
+                    if (err.code === 'ENOENT') { //its perfectly fine for a directory to not exist
+                        return resolve([]);
+                    }
+
                     console.log(err);
                     return reject(err);
                 }
 
                 if (fileToMatch === '') {
-                    return resolve(fileNames);
+                    return resolve(shell.escape(fileNames));
                 }
 
                 const foundFiles = fileNames.filter(filename => {
@@ -57,13 +61,14 @@ class FileCompleter {
                         if (line.includes('~')) {
                             correctedLine = shell.collapsePath(line, this.shell);
                             foundFilePath = shell.collapsePath(foundFilePath, this.shell);
+                            foundFilePath = shell.escape(foundFilePath);
                         }
 
                         const mergedLineWithResult = this._intersectStrings(correctedLine, foundFilePath);
                         return resolve([mergedLineWithResult]);
                     });
                 } else {
-                    return resolve(foundFiles);
+                    return resolve(shell.escape(foundFiles));
                 }
             });
         });

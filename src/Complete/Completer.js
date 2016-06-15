@@ -9,9 +9,9 @@ class Completer {
         this.shell = shell;
         this.parser = new Parser(this.shell);
 
-        this.completers = [];
+        this.pathCompleters = [];
         this.shell.paths.forEach(path => {
-            this.completers.push(new FileCompleter(this.shell, path));
+            this.pathCompleters.push(new FileCompleter(this.shell, path));
         });
     }
 
@@ -35,7 +35,8 @@ class Completer {
 
         let fileToMatch;
         let fileBaseDir;
-        if (toAutocomplete.endsWith('/')) { //if the last char is slash we want to show all files
+        const isDirPath = toAutocomplete.endsWith('/');
+        if (isDirPath) { //if the last char is slash we want to show all files
             fileToMatch = '';
             fileBaseDir = toAutocomplete;
         } else {
@@ -44,15 +45,18 @@ class Completer {
         }
 
         let searchDir;
-        if (fileBaseDir.startsWith('/') && fs.existsSync(toAutocomplete)) {
-            searchDir = toAutocomplete;
+        const isAbsolutePath = fileBaseDir.startsWith('/');
+        if (isAbsolutePath && fs.existsSync(fileBaseDir)) {
+            searchDir = fileBaseDir;
         } else {
             searchDir = path.normalize(this.shell.absoluteCwd) === path.normalize(fileBaseDir) ?
                 fileBaseDir : path.join(this.shell.absoluteCwd, fileBaseDir.replace(this.shell.absoluteCwd, ''));
         }
 
-        const completersPipeline = [new FileCompleter(this.shell, searchDir)]
-            .concat(this.completers);
+        let completersPipeline = [new FileCompleter(this.shell, searchDir)];
+        if (!isAbsolutePath && !isDirPath) {
+            completersPipeline = completersPipeline.concat(this.pathCompleters);
+        }
 
         return flow.firstSerial(completersPipeline, completer => {
             return completer.complete(line, fileToMatch, fileBaseDir);

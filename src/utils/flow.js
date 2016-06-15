@@ -6,24 +6,30 @@ class FlowUtils {
             done: false
         };
 
-        const promise = co(function* () {
-            for (let item of array) {
-                if (flowControl.done) {
-                    return;
+        const promise = new Promise((resolve, reject) => {
+            co(function* () {
+                for (let item of array) {
+                    if (flowControl.done) {
+                        return resolve();
+                    }
+
+                    try {
+                        yield callback(item);
+                    } catch (e) {
+                        return reject(e);
+                    }
                 }
 
-                yield callback(item).catch(err => {
-                    throw err;
-                });
-            }
-        }.bind(this));
+                return resolve();
+            }.bind(this));
+        });
 
         return { promise, flowControl };
     }
 
     firstSerial(array, callback, predicate) {
         return new Promise((resolve, reject) => {
-            const { promise, flowControl }= this._forEach(array, item => {
+            const { promise, flowControl } = this._forEach(array, item => {
                 return callback(item)
                     .then(res => {
                         if (predicate(res)) {
@@ -33,6 +39,7 @@ class FlowUtils {
                     });
             });
 
+            promise.then(resolve);
             promise.catch(reject);
         });
     }

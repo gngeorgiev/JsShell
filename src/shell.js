@@ -64,7 +64,7 @@ class Shell extends Initializable {
             this.writeLn(line);
         }).on('SIGINT', () => {
             this.rl.write('^C');
-            this.rl.clearLine(process.stdin, 0);
+            this.clear();
             this.setPrompt();
 
             return false;
@@ -85,7 +85,7 @@ class Shell extends Initializable {
 
     setPrompt() {
         this.rl.setPrompt(this.settings.prompt);
-        this.rl.prompt();
+        this.rl.prompt(true);
     }
 
     writeLn(line) {
@@ -110,11 +110,11 @@ class Shell extends Initializable {
                 results.filter(cmd => !!cmd && !!cmd.value).forEach(cmd => {
                     this.printLn(cmd.value);
                 });
+
                 this.setPrompt();
             })
             .catch(e => {
                 this.error(e);
-                this.setPrompt();
             });
     }
 
@@ -123,6 +123,12 @@ class Shell extends Initializable {
         if (e.stack) {
             console.log(e.stack);
         }
+
+        this.setPrompt();
+    }
+
+    clear() {
+        this.rl.clearLine(process.stdin, 0);
     }
 
     printLn(str) {

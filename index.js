@@ -1,5 +1,6 @@
 require('colors');
 const domain = require('domain').create();
+const { error } = require('./src/utils');
 
 domain.on('error', err => {
     console.log(err);
@@ -26,11 +27,7 @@ domain.run(() => {
                     callback(result);
                 })
                 .catch(err => {
-                    if (!(err instanceof Error)) {
-                        err = new Error(err);
-                    }
-
-                    callback(err);
+                    callback(error.wrap(err));
                 });
         });
 
