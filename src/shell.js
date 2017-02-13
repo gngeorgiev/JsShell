@@ -1,6 +1,7 @@
 const readline = require('readline');
+const fs = require('fs');
 const Settings = require('./Settings');
-const Completer = require('./Complete/Completer');
+const Completer = require('./complete/Completer');
 const Executor = require('./Executor');
 const path = require('path');
 const Initializable = require('./Initializable');
@@ -32,6 +33,7 @@ class Shell extends Initializable {
 
     _initialize() {
         Settings(this, settings => {
+            this.initialized = true;
             this.settings = settings;
             this.paths = this.settings.env.PATH.split(':');
 
@@ -40,13 +42,13 @@ class Shell extends Initializable {
             this.completer = new Completer(this);
             this.executor = new Executor(this);
 
-            this.rl = readline.createInterface({
-                input: process.stdin,
-                output: process.stdout,
-                terminal: true,
-                completer: this.completer.complete.bind(this.completer)
-            });
+            const input = process.stdin;
+            const output = process.stdout;
+            const terminal = true;
+            const completer = this.completer.complete.bind(this.completer);
+            this.rl = readline.createInterface({input, output, terminal, completer});
             this.setPrompt();
+            this._readHistory();
 
             readline.emitKeypressEvents(process.stdin, this.rl);
             if (process.stdin.isTTY) {
@@ -60,15 +62,54 @@ class Shell extends Initializable {
     }
 
     _attachHandlers() {
-        this.rl.on('line', line => {
-            this.writeLn(line);
-        }).on('SIGINT', () => {
-            this.rl.write('^C');
-            this.clear();
-            this.setPrompt();
+        this.rl
+            .on('line', line => {
+                this.writeLn(line);
+            })
+            .on('SIGINT', () => {
+                this.rl.write('^C');
+                this.clear();
+                this.setPrompt();
 
-            return false;
-        }).on('close', () => process.exit(0));
+                return false;
+            })
+            .on('close', () => {
+                this.exit();
+            });
+    }
+
+    _readHistory() {
+        try {
+            const history = fs.readFileSync(this.settings.historyFile, 'utf8').split('\r\n');
+            const reversedHistory = [];
+            const maxHistoryLength = this.settings.history.maxSessionSize;
+            for (let i = history.length - 1; i >= 0; i--) { //filtering and reversing in the same loop for beter performance
+                const entry = history[i];
+                if (entry) {
+                    reversedHistory.push(history[i]);
+                }
+
+                if (reversedHistory.length >= maxHistoryLength) {
+                    break;
+                }
+            }
+
+            this.rl.history = reversedHistory;
+        } catch (e) {
+            return this.writeToDebugLog(e);
+        }
+    }
+
+    _writeHistory(line = null) {
+        if (!line) {
+            return;
+        }
+
+        //this will need optimization once the history grows bigger
+        fs.appendFileSync(this.settings.historyFile, `${line}\r\n`); //TODO: max file lines
+        while (this.rl.history.length > this.settings.history.maxSessionSize) {
+            this.rl.history.splice(0, 1);
+        }
     }
 
     onLine(cb) {
@@ -83,12 +124,18 @@ class Shell extends Initializable {
         return this.executor.spawn(cmd, args, opts);
     }
 
+    exit(code = 0, err = null) {
+        this.error(err);
+        process.exit(code);
+    }
+
     setPrompt() {
         this.rl.setPrompt(this.settings.prompt);
         this.rl.prompt(true);
     }
 
     writeLn(line) {
+        this._writeHistory(line);
         const allLineListenersPromises = this._lineCallbacks.map(cb => {
             return new Promise((resolve, reject) => {
                 try {
@@ -111,6 +158,7 @@ class Shell extends Initializable {
                     this.printLn(cmd.value);
                 });
 
+                this._readHistory();
                 this.setPrompt();
             })
             .catch(e => {
@@ -118,11 +166,21 @@ class Shell extends Initializable {
             });
     }
 
+    writeToDebugLog(e) {
+        fs.appendFileSync(path.join(this.settings.configFolder, 'debug.log'), `${e.toString()}\r\n`);
+    }
+
     error(e) {
+        if (!e) {
+            return;
+        }
+
         console.log(e.message);
         if (e.stack) {
             console.log(e.stack);
         }
+
+        this.writeToDebugLog(e);
 
         this.setPrompt();
     }

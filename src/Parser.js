@@ -24,7 +24,7 @@ class Parser {
         let lastMatchIndex = 0;
         lineChars.forEach((char, index) => {
             const isLast = index === line.length - 1;
-            const isOperation = commandOperations.includes(char);
+            let isOperation = commandOperations.includes(char);
 
             if (char === constants.CommandOperation.Background && lineChars[index + 1] === constants.CommandOperation.Background) {
                 return;
@@ -32,6 +32,12 @@ class Parser {
 
             if (char === constants.CommandOperation.Background && lineChars[index - 1] === constants.CommandOperation.Background) {
                 char = constants.CommandOperation.And
+            }
+
+            if (isOperation && char === constants.CommandOperation.Multiline && !isLast) {
+                //if we want to escape an empty char in path e.g. path/SOME\ PATH this should not count as an operator
+                //this should count a//if we want to escape an empty char in path e.g. path/SOME\ PATH this should not count as an operators an operator only when it is the last char
+                isOperation = false;
             }
 
             if (isOperation || isLast) {

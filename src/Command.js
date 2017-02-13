@@ -80,6 +80,10 @@ class Command {
         return this._getArgs(commandTokens);
     }
 
+    get argsRaw() {
+        return this.cmdRaw.replace(`${this.cmd } `, '').trim();
+    }
+
     get next() {
         return this.commands[this.index + 1];
     }

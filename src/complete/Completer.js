@@ -45,7 +45,7 @@ class Completer {
         }
 
         let searchDir;
-        const isAbsolutePath = fileBaseDir.startsWith('/');
+        const isAbsolutePath = path.isAbsolute(fileBaseDir);
         if (isAbsolutePath && fs.existsSync(fileBaseDir)) {
             searchDir = fileBaseDir;
         } else {

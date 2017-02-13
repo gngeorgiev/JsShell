@@ -41,6 +41,11 @@ module.exports = function (shell) {
                     return shell.printLn(`Hello ${shell.settings.env.USER}!`);
                 }
             }
+        },
+        history: {
+            location: path.join(__dirname, 'history'), // ~/.jshell/history
+            maxFileSize: 1000,
+            maxSessionSize: 100
         }
     }
 };

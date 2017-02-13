@@ -2,13 +2,17 @@ require('colors');
 const domain = require('domain').create();
 const { error } = require('./src/utils');
 
+let shell;
 domain.on('error', err => {
-    console.log(err);
-    require('fs').writeFileSync('debug.log', err.toString(), 'utf-8');
+    shell.exit(1, err);
+});
+
+process.on('uncaughtException', err => {
+    shell.exit(1, err);
 });
 
 domain.run(() => {
-    const shell = require('./src/shell');
+    shell = require('./src/shell');
     const Parser = require('./src/Parser');
     const Executor = require('./src/Executor');
 
@@ -16,19 +20,18 @@ domain.run(() => {
         const parser = new Parser(shell);
         const executor = new Executor(shell);
 
-        shell.onLine((line, callback) => {
+        shell.onLine(async (line, callback) => {
             if (!line) {
                 return callback();
             }
 
             const parsedLine = parser.parse(line);
-            executor.execute(parsedLine)
-                .then(result => {
-                    callback(result);
-                })
-                .catch(err => {
-                    callback(error.wrap(err));
-                });
+            try {
+                const result = await executor.execute(parsedLine);
+                return callback(result);
+            } catch (err) {
+                return callback(error.wrap(err));
+            }
         });
 
         let params = process.argv.slice(2);

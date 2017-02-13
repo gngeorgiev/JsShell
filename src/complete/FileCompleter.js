@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { times } = require('lodash');
-const { shell } = require('../utils');
+const { shell, strings } = require('../utils');
 
 class FileCompleter {
     constructor(shell, searchDir) {
@@ -9,20 +8,10 @@ class FileCompleter {
         this.searchDir = searchDir;
     }
 
-    _intersectStrings(into, str) {
-        let intersectString = str;
-        let match = into + str; //default
-        times(str.length, () => {
-            const intersectIndex = into.indexOf(intersectString);
-            if (intersectIndex === -1) {
-                intersectString = intersectString.substring(0, intersectString.length - 1);
-            } else {
-                let stringWithoutMatch = into.substring(0, intersectIndex);
-                match = stringWithoutMatch + str;
-            }
-        });
-
-        return match;
+    _toCompleterFileNames(array, line) {
+        return (array || [])
+            .map(f => shell.escape(f))
+            .map(f => strings.intersect(line, f));
     }
 
     complete(line, fileToMatch, fileBaseDir) {
@@ -37,8 +26,14 @@ class FileCompleter {
                     return reject(err);
                 }
 
+                let correctedLine = line;
+                if (line.includes('~')) {
+                    correctedLine = shell.collapsePath(line, this.shell);
+                }
+
                 if (fileToMatch === '') {
-                    return resolve(shell.escape(fileNames));
+                    const completedFileNames = this._toCompleterFileNames(fileNames, correctedLine);
+                    return resolve(completedFileNames);
                 }
 
                 const foundFiles = fileNames.filter(filename => {
@@ -57,14 +52,10 @@ class FileCompleter {
                             foundFilePath += '/';
                         }
 
-                        let correctedLine = line;
-                        if (line.includes('~')) {
-                            correctedLine = shell.collapsePath(line, this.shell);
-                            foundFilePath = shell.collapsePath(foundFilePath, this.shell);
-                            foundFilePath = shell.escape(foundFilePath);
-                        }
+                        foundFilePath = shell.collapsePath(foundFilePath, this.shell);
+                        foundFilePath = shell.escape(foundFilePath);
 
-                        const mergedLineWithResult = this._intersectStrings(correctedLine, foundFilePath);
+                        const mergedLineWithResult = strings.intersect(correctedLine, foundFilePath);
                         return resolve([mergedLineWithResult]);
                     });
                 } else {

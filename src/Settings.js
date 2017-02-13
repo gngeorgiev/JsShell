@@ -8,11 +8,6 @@ const vm = require('vm');
 const { error } = require('./utils');
 const Initializable = require('./Initializable');
 
-const defaultConfig = {
-    prompt: `$>`,
-    env: process.env
-};
-
 const defaultConfigPath = path.resolve(__dirname, '..', 'default');
 
 class Settings extends Initializable {
@@ -22,9 +17,18 @@ class Settings extends Initializable {
         this.shell = shell;
         this.configFolder = path.join(process.env.HOME, '.jshell');
         this.configPath = path.join(this.configFolder, 'config.js');
-        this.config = defaultConfig;
-
+        this.config = {
+            prompt: `$>`,
+            env: process.env,
+            history: {
+                location: path.join(this.configPath, 'history'),
+                maxFileSize: 1000,
+                maxSessionSize: 100
+            }
+        };
         this._init();
+
+        this.historyFile = this._getConfigProperty('history').location;
     }
 
     _readConfig() {
@@ -33,6 +37,8 @@ class Settings extends Initializable {
             const module = {exports: {}};
             const context = vm.createContext(_.extend({}, global, {
                 module,
+                __dirname: this.configFolder,
+                __filename: this.configPath,
 
                 require(module) {
                     try {
@@ -48,7 +54,7 @@ class Settings extends Initializable {
             const userConfig = module.exports;
             const config = _.isFunction(userConfig) ? userConfig(this.shell) : userConfig;
 
-            this.config = _.extend({}, this.config, config);
+            this.config = _.merge({}, this.config, config);
             this._fireInitialized();
         } catch (e) {
             console.log(`Error while reading config - ${this.configPath}: ${e}`.red);
@@ -102,7 +108,7 @@ class Settings extends Initializable {
         this._askInitShellQuestion()
             .then(yesNo => {
                 if (!yesNo) {
-                    return process.exit(0);
+                    return this.shell.exit();
                 }
 
                 fs.mkdir(this.configFolder, err => {
@@ -123,7 +129,7 @@ class Settings extends Initializable {
             });
     }
 
-    _callOrGet(field) {
+    _getConfigProperty(field) {
         const prop = this.config[field];
 
         if (typeof prop === 'function') {
@@ -141,7 +147,11 @@ module.exports = function (shell, callback) {
         const proxy = new Proxy(settings, {
             get(settings, prop) {
                 if (settings.config[prop]) {
-                    return settings._callOrGet(prop);
+                    return settings._getConfigProperty(prop);
+                }
+
+                if (settings[prop]) {
+                    return settings[prop];
                 }
 
                 return null;

@@ -1,5 +1,4 @@
 const { isString } = require('lodash');
-
 class ShellUtils {
     static expandPath(path, shell) {
         return path.replace(new RegExp('\$[a-zA-Z]+|\~', 'g'), match => {
@@ -25,6 +24,18 @@ class ShellUtils {
         }
 
         return s.replace(/(["\s'$`\\])/g,'\\$1');
+    }
+
+    static unescape(s) {
+        if (Array.isArray(s)) {
+            return s.map(s => ShellUtils.unescape(s));
+        }
+
+        if (!isString(s)) {
+            return s;
+        }
+
+        return s.replace(/(\\\ )/g, ' ');
     }
 }
 

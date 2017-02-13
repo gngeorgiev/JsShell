@@ -6,7 +6,7 @@ const stream = require('stream');
 
 const constants = require('./constants');
 const Evaluator = require('./Evaluator');
-const { flow, error } = require('./utils');
+const { flow, error, shell } = require('./utils');
 
 class Executor {
     constructor(shell) {
@@ -18,6 +18,10 @@ class Executor {
     }
 
     _findSystemPath(cmd) {
+        if (path.isAbsolute(cmd) && fs.existsSync(cmd)) {
+            return cmd;
+        }
+
         const systemPath = this.paths.concat(this.shell.absoluteCwd).find(systemPath => {
             const cmdSystemPath = path.join(systemPath, cmd);
             return fs.existsSync(cmdSystemPath);
@@ -86,32 +90,34 @@ class Executor {
     }
 
     executeJshellCommand(cmd) {
-        return this.evaluator.evaluate(cmd.cmdRaw)
-            .then(value => {
-                cmd.value = value;
-            });
+        return this.evaluator.evaluate(cmd.cmdRaw).then(value => cmd.value = value);
     }
 
-    executeCdCommand(args) {
+    executeCdCommand(cmd) {
         return new Promise((resolve, reject) => {
-            let cdPath = args.length ? args[0] : '..';
+            let cdPath = cmd.argsRaw;
 
             let newCwd = '';
             if (cdPath.charAt(0) === '/') {
                 newCwd = path.normalize(cdPath);
             } else {
-                newCwd = path.join(this.shell.absoluteCwd, cdPath);
+                if (cdPath.charAt(0) === '~') {
+                    newCwd = shell.expandPath(cdPath, this.shell);
+                } else {
+                    newCwd = path.join(this.shell.absoluteCwd, cdPath);
+                }
             }
 
-            fs.exists(newCwd, exists => {
+            const unescapedCdPath = shell.unescape(newCwd);
+            fs.exists(unescapedCdPath, exists => {
                 if (exists) {
-                    return fs.stat(newCwd, (err, stat) => {
+                    return fs.stat(unescapedCdPath, (err, stat) => {
                         if (err) {
                             return reject(error.wrapNoStack(err));
                         }
 
                         if (stat.isDirectory()) {
-                            this.shell.cwd = newCwd;
+                            this.shell.cwd = unescapedCdPath;
                             return resolve();
                         }
 
@@ -129,7 +135,7 @@ class Executor {
             let commandExecutePromise;
 
             if (cmd.cmd === constants.Command.Cd) {
-                commandExecutePromise = this.executeCdCommand(cmd.args);
+                commandExecutePromise = this.executeCdCommand(cmd);
             } else {
                 const systemCmd = this._findSystemPath(cmd.cmd);
                 if (systemCmd) {
